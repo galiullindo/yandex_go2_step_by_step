@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"io"
-	"strings"
 	"testing"
 
 	"github.com/galiullindo/yandex_go2_step_by_step/step1/testutils"
@@ -20,7 +19,7 @@ func TestCopy(t *testing.T) {
 	}{
 		{
 			name:           "Empty reader",
-			reader:         strings.NewReader(""),
+			reader:         bytes.NewReader([]byte(nil)),
 			writer:         bytes.NewBuffer([]byte(nil)),
 			n:              10,
 			expectedValue:  "",
