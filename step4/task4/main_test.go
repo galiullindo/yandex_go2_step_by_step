@@ -47,17 +47,17 @@ func TestWriteAndConsumeAsGoroutines(t *testing.T) {
 		expected   int
 	}{
 		{
-			name:       "Parallel processing case 100 goroutines and value 1",
+			name:       "Parallel processing case 100 goroutines",
 			goroutines: 100,
 			expected:   100,
 		},
 		{
-			name:       "Parallel processing case 1000 goroutines and value 1",
+			name:       "Parallel processing case 1000 goroutines",
 			goroutines: 1000,
 			expected:   1000,
 		},
 		{
-			name:       "Parallel processing case 10000 goroutines and value 1",
+			name:       "Parallel processing case 10000 goroutines",
 			goroutines: 10000,
 			expected:   10000,
 		},
@@ -76,7 +76,7 @@ func TestWriteAndConsumeAsGoroutines(t *testing.T) {
 			wg.Wait()
 
 			if got := len(Buf); got != test.expected {
-				t.Errorf("Buffer length got %d, expected %d\n", got, test.expected)
+				t.Errorf("unexpected buffer length: got %d, expected %d\n", got, test.expected)
 			}
 
 			for range test.goroutines {
@@ -87,7 +87,7 @@ func TestWriteAndConsumeAsGoroutines(t *testing.T) {
 			wg.Wait()
 
 			if got := len(Buf); got != 0 {
-				t.Errorf("Buffer length got %d, expected 0\n", got)
+				t.Errorf("unexpected buffer length: got %d, expected 0\n", got)
 			}
 		})
 	}
