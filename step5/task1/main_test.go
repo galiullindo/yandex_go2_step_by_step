@@ -13,7 +13,6 @@ type CustomReader struct {
 	f func(p []byte) (n int, err error)
 }
 
-// Attention: if delay greater than 0 copy to dst []byte("abcd") and return 4, io.EOF
 func NewCustomReader(f func(p []byte) (n int, err error)) *CustomReader {
 	return &CustomReader{f: f}
 }
@@ -31,9 +30,10 @@ func TestContains(t *testing.T) {
 		sequence       []byte
 		expected       bool
 		errWasExpected bool
+		expectedError  error
 	}{
 		{
-			name:           "Case normal",
+			name:           "Case normal and true",
 			timeout:        0,
 			reader:         bytes.NewReader([]byte("abcdefghijklmnopqrstuvwxyz")),
 			sequence:       []byte("opqr"),
@@ -41,7 +41,15 @@ func TestContains(t *testing.T) {
 			errWasExpected: false,
 		},
 		{
-			name:           "Case value true and channel was closed",
+			name:           "Case normal and false",
+			timeout:        0,
+			reader:         bytes.NewReader([]byte("abcdefghijklmnopqrstuvwxyz")),
+			sequence:       []byte("apqr"),
+			expected:       false,
+			errWasExpected: false,
+		},
+		{
+			name:           "Case channel was closed and true",
 			timeout:        0,
 			reader:         bytes.NewReader([]byte("abcdefghijklmnopqrstuvwxyz")),
 			sequence:       []byte("wxyz"),
@@ -49,7 +57,7 @@ func TestContains(t *testing.T) {
 			errWasExpected: false,
 		},
 		{
-			name:           "Case value false and channel was closed",
+			name:           "Case channel was closed and false",
 			timeout:        0,
 			reader:         bytes.NewReader([]byte("abcdefghijklmnopqrstuvwxyz")),
 			sequence:       []byte("wxyza"),
@@ -73,19 +81,19 @@ func TestContains(t *testing.T) {
 			errWasExpected: true,
 		},
 		{
-			name:    "Case timeout less than delay",
+			name:    "Case timeout less than time",
 			timeout: 10 * time.Millisecond,
 			reader: NewCustomReader(func(p []byte) (n int, err error) {
 				time.Sleep(15 * time.Millisecond)
 				n = copy(p, []byte("a"))
-				return n, io.EOF
+				return n, nil
 			}),
 			sequence:       []byte("a"),
 			expected:       false,
 			errWasExpected: true,
 		},
 		{
-			name:    "Case value true and timeout greater than delay",
+			name:    "Case time less than timeout and true",
 			timeout: 15 * time.Millisecond,
 			reader: NewCustomReader(func(p []byte) (n int, err error) {
 				time.Sleep(10 * time.Millisecond)
@@ -97,7 +105,7 @@ func TestContains(t *testing.T) {
 			errWasExpected: false,
 		},
 		{
-			name:    "Case value false and timeout greater than delay",
+			name:    "Case time less than timeout and false",
 			timeout: 15 * time.Millisecond,
 			reader: NewCustomReader(func(p []byte) (n int, err error) {
 				time.Sleep(10 * time.Millisecond)
@@ -108,6 +116,18 @@ func TestContains(t *testing.T) {
 			expected:       false,
 			errWasExpected: false,
 		},
+		{
+			name:    "Case endless file",
+			timeout: 15 * time.Millisecond,
+			reader: NewCustomReader(func(p []byte) (n int, err error) {
+				n = copy(p, []byte("a"))
+				return n, nil
+			}),
+			sequence:       []byte("b"),
+			expected:       false,
+			errWasExpected: true,
+			expectedError:  context.DeadlineExceeded,
+		},
 	}
 
 	for _, test := range tests {
@@ -115,6 +135,7 @@ func TestContains(t *testing.T) {
 			ctx, cancel := context.Background(), func() {}
 			if test.timeout > 0 {
 				ctx, cancel = context.WithTimeout(ctx, test.timeout)
+
 			}
 			defer cancel()
 
@@ -122,6 +143,9 @@ func TestContains(t *testing.T) {
 
 			if (err != nil) != test.errWasExpected {
 				t.Errorf("unexpected error, got %v, was expected %v\n", err, test.errWasExpected)
+			}
+			if (test.expectedError != nil && err != test.expectedError) || ((err != nil) != test.errWasExpected) {
+				t.Errorf("unexpected error, got %v, expected %v\n", err, test.expectedError)
 			}
 
 			if got != test.expected {
