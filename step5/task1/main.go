@@ -10,72 +10,98 @@ var (
 	ErrEmptySequence = errors.New("sequence is empty")
 )
 
-type message struct {
+type Message struct {
 	Bytes []byte
 	N     int
 	Err   error
 }
 
-func read(reader io.Reader, channel chan message) {
-	defer close(channel)
-	bytes := make([]byte, 16)
-
-	for {
-		n, err := reader.Read(bytes)
-
+func readMessage(reader io.Reader, p []byte) Message {
+	n, err := reader.Read(p)
+	if err != nil {
 		if err == io.EOF {
-			channel <- message{bytes, n, nil}
-			return
-		} else if err != nil {
-			channel <- message{nil, 0, err}
-			return
+			return Message{p, n, io.EOF}
+		} else {
+			return Message{nil, 0, err}
 		}
-
-		channel <- message{bytes, n, err}
 	}
+	return Message{p, n, err}
 }
 
-func Contains(ctx context.Context, reader io.Reader, sequence []byte) (bool, error) {
+func readWithContext(ctx context.Context, reader io.Reader) <-chan Message {
+	channel := make(chan Message)
+
+	go func() {
+		defer close(channel)
+
+		bytes := make([]byte, 16)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case channel <- readMessage(reader, bytes):
+			}
+		}
+	}()
+
+	return channel
+}
+
+func checkingForSequence(message Message, sequence []byte, last int) (bool, int) {
+	for i := 0; i < message.N; i++ {
+		isEquals := message.Bytes[i] == sequence[last]
+		if isEquals {
+			last++
+		} else {
+			last = 0
+		}
+
+		isContainsSequence := last == len(sequence)
+		if isContainsSequence {
+			return true, last
+		}
+	}
+	return false, last
+}
+
+func Contains(ctx context.Context, reader io.Reader, sequence []byte) (is bool, e error) {
 	isEmptySequence := len(sequence) == 0
 	if isEmptySequence {
 		return false, ErrEmptySequence
 	}
 
-	channel := make(chan message)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-	go read(reader, channel)
+	reading := readWithContext(ctx, reader)
 
-	sLastByte := 0
-	isContainsSequence := false
+	var (
+		sLastByte          int
+		isContainsSequence bool
+		hasEOF             bool
+	)
+
 	for {
 		select {
-		case message, ok := <-channel:
-			if !ok {
-				return isContainsSequence, nil
-			}
-
+		case <-ctx.Done():
+			return false, ctx.Err()
+		case message := <-reading:
 			err := message.Err
 			if err != nil {
-				return false, err
+				if err == io.EOF {
+					hasEOF = true
+				} else {
+					return false, err
+				}
 			}
 
 			if message.N > 0 {
-				for i := 0; i < message.N; i++ {
-					isEquals := message.Bytes[i] == sequence[sLastByte]
-					if isEquals {
-						sLastByte++
-					} else {
-						sLastByte = 0
-					}
-
-					isContainsSequence = sLastByte == len(sequence)
-					if isContainsSequence {
-						return true, nil
-					}
-				}
+				isContainsSequence, sLastByte = checkingForSequence(message, sequence, sLastByte)
 			}
-		case <-ctx.Done():
-			return false, ctx.Err()
+
+			if isContainsSequence || hasEOF {
+				return isContainsSequence, nil
+			}
 		}
 	}
 }
