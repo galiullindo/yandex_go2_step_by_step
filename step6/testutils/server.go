@@ -66,6 +66,14 @@ func Mark(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%d", mark)
 }
 
+// NewServer возвращает указатель на экземпляр http.Server и функции start, и stop, для запуска и остановки сервера.
+//
+//	use:
+//		_, start, stop := NewServer(addr)
+//		go start()
+//		defer stop()
+//
+// ...
 func NewServer(addr string) (server *http.Server, start func(), stop func()) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mark", Mark)
