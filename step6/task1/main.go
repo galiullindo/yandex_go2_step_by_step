@@ -12,6 +12,7 @@ import (
 var (
 	StudentNotFoundError = errors.New("student not found ")
 	InternalServerError  = errors.New("internal server error")
+	BadRequestError      = errors.New("bad request")
 )
 
 func fetch(name string) (int, error) {
@@ -33,6 +34,8 @@ func fetch(name string) (int, error) {
 		return 0, InternalServerError
 	case http.StatusNotFound:
 		return 0, StudentNotFoundError
+	case http.StatusBadRequest:
+		return 0, BadRequestError
 	}
 
 	defer resp.Body.Close()
