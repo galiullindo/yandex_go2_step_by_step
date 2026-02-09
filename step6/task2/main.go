@@ -11,6 +11,7 @@ import (
 var (
 	StudentNotFoundError = errors.New("student not found ")
 	InternalServerError  = errors.New("internal server error")
+	BadRequestError      = errors.New("bad request")
 	ErrNamesIsEmpty      = errors.New("names is empty")
 )
 
@@ -44,6 +45,9 @@ func fetch(name string) Student {
 	case http.StatusNotFound:
 		student.Err = StudentNotFoundError
 		return student
+	case http.StatusBadRequest:
+		student.Err = BadRequestError
+		return student
 	}
 
 	defer resp.Body.Close()
@@ -61,7 +65,6 @@ func fetch(name string) Student {
 
 	student.Mark = mark
 	return student
-
 }
 
 func Average(names []string) (int, error) {
