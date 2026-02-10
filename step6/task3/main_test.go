@@ -87,7 +87,6 @@ func TestFetchMark(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestAverageMark(t *testing.T) {
