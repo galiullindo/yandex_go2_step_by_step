@@ -12,7 +12,7 @@
 - Step 5. Context для управления concurrency
 - Step 6. Паттерны concurrency (пакет sync)
 - Step 7. Таймауты и таймеры
-- Step 8. Практика работы с таймаутами
+- Step 8. Паттерны работы с таймаутами
 - Step 9. Тестирование concurrent-кода
 - Step 10. Инструменты разработчика (анализ горутин, race detector)
 - Step 11. Дженерики в Go
