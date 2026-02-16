@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/galiullindo/yandex_go2_step_by_step/step6/testutils"
+	"github.com/galiullindo/go-2-step-by-step/step6/testutils"
 )
 
 func TestFetchMark(t *testing.T) {

@@ -1,3 +1,3 @@
-module github.com/galiullindo/yandex_go2_step_by_step
+module github.com/galiullindo/go-2-step-by-step
 
 go 1.25.3

@@ -5,7 +5,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/galiullindo/yandex_go2_step_by_step/step1/testutils"
+	"github.com/galiullindo/go-2-step-by-step/step1/testutils"
 )
 
 func TestCopy(t *testing.T) {
